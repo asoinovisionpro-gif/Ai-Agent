@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+
+<div class="stat-grid">
+  <div class="stat-card cyan">
+    <div class="stat-icon cyan">📅</div>
+    <div class="stat-value">{{ active_bookings | length }}</div>
+    <div class="stat-label">Active Bookings</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon green">✓</div>
+    <div class="stat-value">{{ attendance_rate }}%</div>
+    <div class="stat-label">Attendance Rate</div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-icon amber">🕐</div>
+    <div class="stat-value">{{ todays_sessions | length }}</div>
+    <div class="stat-label">Sessions Today</div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-icon red">🔔</div>
+    <div class="stat-value">{{ unread_count }}</div>
+    <div class="stat-label">Unread Alerts</div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Active Bookings</div>
+        <div class="card-subtitle">Your confirmed seat reservations</div>
+      </div>
+      <a href="{{ url_for('student.labs') }}" class="btn btn-primary btn-sm">+ Book seat</a>
+    </div>
+    {% if active_bookings %}
+      {% for booking in active_bookings %}
+      <div class="agent-log-entry">
+        <div class="agent-dot approve"></div>
+        <div class="agent-log-body">
+          <div class="agent-log-title">{{ booking.seat.laboratory.name }} — Seat {{ booking.seat.seat_number }}</div>
+          <div class="agent-log-meta">{{ booking.start_time.strftime('%a %d %b · %H:%M') }} → {{ booking.end_time.strftime('%H:%M') }}</div>
+        </div>
+        <span class="badge badge-approved">confirmed</span>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state" style="padding:32px 20px;">
+        <div class="empty-icon">🪑</div>
+        <div class="empty-title">No active bookings</div>
+        <div class="empty-desc">Reserve a seat in any available lab.</div>
+        <a href="{{ url_for('student.labs') }}" class="btn btn-primary btn-sm">Browse labs</a>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Today's Sessions</div>
+        <div class="card-subtitle">{{ now.strftime('%A, %d %B %Y') }}</div>
+      </div>
+    </div>
+    {% if todays_sessions %}
+      {% for sched in todays_sessions %}
+      <div class="schedule-item">
+        <div class="schedule-course">{{ sched.course_name }}</div>
+        <div class="schedule-meta">{{ sched.laboratory.name }} · {{ sched.start_time.strftime('%H:%M') }}–{{ sched.end_time.strftime('%H:%M') }}</div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state" style="padding:32px 20px;">
+        <div class="empty-icon">📭</div>
+        <div class="empty-title">No sessions today</div>
+        <div class="empty-desc">Check the full schedule for upcoming classes.</div>
+      </div>
+    {% endif %}
+    <a href="{{ url_for('student.schedule') }}" class="btn btn-ghost btn-sm w-full" style="margin-top:12px;">View full schedule</a>
+  </div>
+</div>
+
+<div class="card mt-16">
+  <div class="card-header">
+    <div>
+      <div class="card-title">Recent Notifications</div>
+    </div>
+    <a href="{{ url_for('student.notifications') }}" class="btn btn-ghost btn-sm">See all</a>
+  </div>
+  {% if recent_notifications %}
+    {% for notif in recent_notifications[:5] %}
+    <div class="notification-item {% if not notif.read %}unread{% endif %}">
+      <div class="notif-icon">
+        {% if notif.type == 'booking' %}📅{% elif notif.type == 'attendance' %}✓{% elif notif.type == 'fault' %}⚠{% else %}🔔{% endif %}
+      </div>
+      <div class="notif-body">
+        <div class="notif-message">{{ notif.message }}</div>
+        <div class="notif-time">{{ notif.created_at.strftime('%d %b · %H:%M') }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-state" style="padding:24px;">
+      <div class="empty-desc">No notifications yet.</div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

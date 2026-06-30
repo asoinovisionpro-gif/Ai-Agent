@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block page_title %}Reports{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>Reports</h1>
+    <p>Operational, administrative, and AI-generated insights.</p>
+  </div>
+</div>
+
+<div class="tabs">
+  <a href="?tab=attendance" class="tab {{ 'active' if tab == 'attendance' or not tab }}">Attendance</a>
+  <a href="?tab=bookings" class="tab {{ 'active' if tab == 'bookings' }}">Bookings</a>
+  <a href="?tab=occupancy" class="tab {{ 'active' if tab == 'occupancy' }}">Occupancy</a>
+  <a href="?tab=ai" class="tab {{ 'active' if tab == 'ai' }}">AI Insights</a>
+</div>
+
+{% if tab == 'bookings' %}
+<div class="grid-2 mb-16">
+  <div class="stat-card cyan">
+    <div class="stat-value">{{ booking_stats.total }}</div>
+    <div class="stat-label">Total Bookings</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-value">{{ booking_stats.approved }}</div>
+    <div class="stat-label">Approved</div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-value">{{ booking_stats.rejected }}</div>
+    <div class="stat-label">Rejected by Agent</div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-value">{{ booking_stats.rejection_rate }}%</div>
+    <div class="stat-label">Rejection Rate</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">Bookings by Lab</div>
+  </div>
+  <div class="table-wrapper" style="border:none; border-radius:0;">
+    <table>
+      <thead><tr><th>Lab</th><th>Total</th><th>Approved</th><th>Rejected</th></tr></thead>
+      <tbody>
+        {% for row in booking_by_lab %}
+        <tr>
+          <td style="font-weight:600;">{{ row.lab_name }}</td>
+          <td class="table-mono">{{ row.total }}</td>
+          <td class="table-mono text-green">{{ row.approved }}</td>
+          <td class="table-mono text-red">{{ row.rejected }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% elif tab == 'occupancy' %}
+<div class="grid-2">
+  {% for lab in labs %}
+  <div class="card">
+    <div class="card-title mb-12">{{ lab.name }}</div>
+    {% set occ = occupancy[lab.id] %}
+    <div class="d-flex" style="gap:16px; margin-bottom:12px;">
+      <div style="text-align:center;"><div style="font-size:22px; font-weight:700; font-family:var(--font-mono); color:var(--color-green);">{{ occ.available }}</div><div style="font-size:11px; color:var(--color-text-muted);">Available</div></div>
+      <div style="text-align:center;"><div style="font-size:22px; font-weight:700; font-family:var(--font-mono); color:var(--color-red);">{{ occ.reserved }}</div><div style="font-size:11px; color:var(--color-text-muted);">Reserved</div></div>
+      <div style="text-align:center;"><div style="font-size:22px; font-weight:700; font-family:var(--font-mono); color:var(--color-orange);">{{ occ.occupied }}</div><div style="font-size:11px; color:var(--color-text-muted);">Occupied</div></div>
+    </div>
+    <div class="occupancy-bar">
+      <span>{{ occ.occupied + occ.reserved }}/{{ occ.total }}</span>
+      <div class="bar"><div class="fill" style="width:{{ ((occ.occupied + occ.reserved) / occ.total * 100) if occ.total > 0 else 0 }}%;"></div></div>
+      <span>{{ ((occ.occupied + occ.reserved) / occ.total * 100) | int if occ.total > 0 else 0 }}%</span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% elif tab == 'ai' %}
+<div class="card" style="border-color:var(--color-cyan);">
+  <div class="card-header">
+    <div class="card-title" style="color:var(--color-cyan);">⚡ AI-Generated Insights</div>
+    <div class="card-subtitle">Powered by Claude · Updated hourly</div>
+  </div>
+  <div style="font-size:13px; line-height:1.8; color:var(--color-text);">
+    {{ ai_insights | safe if ai_insights else 'No AI insights generated yet. Insights appear after sufficient booking and attendance data has accumulated.' }}
+  </div>
+</div>
+
+{% else %}
+<div class="grid-2 mb-16">
+  <div class="stat-card green">
+    <div class="stat-value">{{ attendance_stats.present }}</div>
+    <div class="stat-label">Total Present</div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-value">{{ attendance_stats.absent }}</div>
+    <div class="stat-label">Total Absent</div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-value">{{ attendance_stats.anomaly }}</div>
+    <div class="stat-label">Anomalies Flagged</div>
+  </div>
+  <div class="stat-card cyan">
+    <div class="stat-value">{{ attendance_stats.rate }}%</div>
+    <div class="stat-label">Overall Rate</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">Attendance by Course</div>
+  </div>
+  <div class="table-wrapper" style="border:none; border-radius:0;">
+    <table>
+      <thead><tr><th>Course</th><th>Lab</th><th>Sessions</th><th>Present</th><th>Absent</th><th>Rate</th></tr></thead>
+      <tbody>
+        {% for row in attendance_by_course %}
+        <tr>
+          <td style="font-weight:600;">{{ row.course_name }}</td>
+          <td class="table-mono">{{ row.lab_name }}</td>
+          <td class="table-mono">{{ row.sessions }}</td>
+          <td class="table-mono text-green">{{ row.present }}</td>
+          <td class="table-mono text-red">{{ row.absent }}</td>
+          <td><span class="badge badge-{{ 'approved' if row.rate >= 75 else 'pending' if row.rate >= 50 else 'rejected' }}">{{ row.rate }}%</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

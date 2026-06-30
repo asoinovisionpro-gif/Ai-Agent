@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Sessions{% endblock %}
+{% block page_title %}Sessions{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>Sessions</h1>
+    <p>All laboratory sessions you have opened, past and present.</p>
+  </div>
+</div>
+
+<div class="tabs">
+  <a href="?filter=open" class="tab {{ 'active' if filter == 'open' else '' }}">Open</a>
+  <a href="?filter=closed" class="tab {{ 'active' if filter == 'closed' else '' }}">Closed</a>
+  <a href="?filter=all" class="tab {{ 'active' if filter == 'all' else '' }}">All</a>
+</div>
+
+{% if sessions %}
+<div class="table-wrapper">
+  <table>
+    <thead>
+      <tr>
+        <th>Course</th>
+        <th>Lab</th>
+        <th>Opened</th>
+        <th>Closed</th>
+        <th>Attendance</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for session in sessions %}
+      <tr>
+        <td style="font-weight:600;">{{ session.schedule.course_name }}</td>
+        <td class="table-mono">{{ session.schedule.laboratory.name }}</td>
+        <td class="table-mono">{{ session.opened_at.strftime('%d %b · %H:%M') }}</td>
+        <td class="table-mono">
+          {% if session.closed_at %}
+            {{ session.closed_at.strftime('%H:%M') }}
+          {% else %}
+            <span class="badge badge-available"><span class="dot"></span> Live</span>
+          {% endif %}
+        </td>
+        <td>
+          {% set summary = session_summaries.get(session.id, {}) %}
+          <span class="text-green">{{ summary.get('present', 0) }}P</span> /
+          <span class="text-red">{{ summary.get('absent', 0) }}A</span> /
+          <span class="text-amber">{{ summary.get('anomaly', 0) }}⚠</span>
+        </td>
+        <td>
+          <div class="d-flex" style="gap:6px;">
+            <a href="{{ url_for('lecturer.session_attendance', session_id=session.id) }}" class="btn btn-secondary btn-sm">Attendance</a>
+            {% if not session.closed_at %}
+            <form method="POST" action="{{ url_for('lecturer.close_session', session_id=session.id) }}">
+              <button type="submit" class="btn btn-danger btn-sm">Close</button>
+            </form>
+            {% endif %}
+            <a href="{{ url_for('lecturer.attendance_report', session_id=session.id) }}" class="btn btn-ghost btn-sm">Export</a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">▶</div>
+  <div class="empty-title">No sessions found</div>
+  <div class="empty-desc">Open a session from your dashboard when class begins.</div>
+</div>
+{% endif %}
+{% endblock %}

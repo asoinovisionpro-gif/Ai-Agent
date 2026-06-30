@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Equipment{% endblock %}
+{% block page_title %}Equipment{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>Equipment</h1>
+    <p>All equipment across all laboratories.</p>
+  </div>
+  <div class="page-header-actions">
+    <button class="btn btn-primary btn-sm" onclick="document.getElementById('addEquipModal').classList.remove('hidden')">+ Add equipment</button>
+  </div>
+</div>
+
+<form method="GET" action="{{ url_for('technician.equipment') }}" class="d-flex gap-8 mb-16">
+  <select name="lab_id" class="form-control" style="width:auto;">
+    <option value="">All Labs</option>
+    {% for lab in labs %}
+    <option value="{{ lab.id }}" {{ 'selected' if filters.lab_id == lab.id | string }}>{{ lab.name }}</option>
+    {% endfor %}
+  </select>
+  <select name="status" class="form-control" style="width:auto;">
+    <option value="">All Status</option>
+    <option value="operational" {{ 'selected' if filters.status == 'operational' }}>Operational</option>
+    <option value="faulty" {{ 'selected' if filters.status == 'faulty' }}>Faulty</option>
+    <option value="maintenance" {{ 'selected' if filters.status == 'maintenance' }}>Maintenance</option>
+    <option value="decommissioned" {{ 'selected' if filters.status == 'decommissioned' }}>Decommissioned</option>
+  </select>
+  <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+  <a href="{{ url_for('technician.equipment') }}" class="btn btn-secondary btn-sm">Clear</a>
+</form>
+
+{% if equipment %}
+<div class="table-wrapper">
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Lab</th>
+        <th>Status</th>
+        <th>Last Maintained</th>
+        <th>Notes</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for eq in equipment %}
+      <tr>
+        <td style="font-weight:600;">{{ eq.name }}</td>
+        <td class="table-mono">{{ eq.type }}</td>
+        <td>{{ eq.laboratory.name }}</td>
+        <td>
+          <span class="badge badge-{{ 'approved' if eq.status == 'operational' else 'rejected' if eq.status == 'faulty' else 'pending' if eq.status == 'maintenance' else 'cancelled' }}">
+            {{ eq.status }}
+          </span>
+        </td>
+        <td class="table-mono">{{ eq.last_maintained.strftime('%d %b %Y') if eq.last_maintained else '—' }}</td>
+        <td style="font-size:12px; color:var(--color-text-muted); max-width:160px;">{{ eq.fault_notes or '—' }}</td>
+        <td>
+          <div class="d-flex gap-6">
+            {% if eq.status != 'faulty' %}
+            <button class="btn btn-danger btn-sm" onclick="openFaultModal('{{ eq.id }}', '{{ eq.name }}')">Log fault</button>
+            {% else %}
+            <form method="POST" action="{{ url_for('technician.resolve_fault', equipment_id=eq.id) }}">
+              <button type="submit" class="btn btn-success btn-sm">Resolve</button>
+            </form>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">💻</div>
+  <div class="empty-title">No equipment found</div>
+  <div class="empty-desc">Add equipment items to start tracking their status.</div>
+</div>
+{% endif %}
+
+<div class="modal-backdrop hidden" id="faultModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Log Fault — <span id="faultEquipName"></span></span>
+      <button class="modal-close" onclick="document.getElementById('faultModal').classList.add('hidden')">×</button>
+    </div>
+    <form method="POST" action="{{ url_for('technician.log_fault') }}" id="faultForm">
+      <input type="hidden" name="equipment_id" id="faultEquipId">
+      <div class="form-group">
+        <label>Fault description</label>
+        <textarea name="fault_notes" class="form-control" rows="3" placeholder="Describe the fault…" required style="resize:vertical;"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('faultModal').classList.add('hidden')">Cancel</button>
+        <button type="submit" class="btn btn-danger">Log fault</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="addEquipModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Add Equipment</span>
+      <button class="modal-close" onclick="document.getElementById('addEquipModal').classList.add('hidden')">×</button>
+    </div>
+    <form method="POST" action="{{ url_for('technician.add_equipment') }}">
+      <div class="form-group">
+        <label>Equipment name</label>
+        <input type="text" name="name" class="form-control" placeholder="Computer #31" required>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Type</label>
+          <input type="text" name="type" class="form-control" placeholder="Desktop / Projector…" required>
+        </div>
+        <div class="form-group">
+          <label>Laboratory</label>
+          <select name="lab_id" class="form-control" required>
+            <option value="" disabled selected>Select…</option>
+            {% for lab in labs %}
+            <option value="{{ lab.id }}">{{ lab.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('addEquipModal').classList.add('hidden')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add equipment</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function openFaultModal(equipId, equipName) {
+    document.getElementById('faultEquipId').value = equipId;
+    document.getElementById('faultEquipName').textContent = equipName;
+    document.getElementById('faultModal').classList.remove('hidden');
+  }
+</script>
+{% endblock %}

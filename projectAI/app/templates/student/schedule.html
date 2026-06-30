@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Schedule{% endblock %}
+{% block page_title %}Lab Schedule{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>Lab Schedule</h1>
+    <p>All scheduled laboratory sessions across the department.</p>
+  </div>
+</div>
+
+{% set days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] %}
+{% for i in range(5) %}
+  {% set day_schedules = schedules | selectattr('day_of_week', 'eq', i) | list %}
+  {% if day_schedules %}
+  <div class="card mb-16">
+    <div class="schedule-day-header">{{ days[i] }}</div>
+    {% for sched in day_schedules %}
+    <div class="schedule-item">
+      <div class="d-flex justify-between align-center">
+        <div>
+          <div class="schedule-course">{{ sched.course_name }}</div>
+          <div class="schedule-meta">{{ sched.laboratory.name }} · {{ sched.start_time.strftime('%H:%M') }}–{{ sched.end_time.strftime('%H:%M') }} · {{ sched.lecturer.name }}</div>
+        </div>
+        <a href="{{ url_for('student.book_seat', lab_id=sched.lab_id) }}" class="btn btn-ghost btn-sm">Book seat</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endfor %}
+
+{% if not schedules %}
+<div class="empty-state">
+  <div class="empty-icon">📅</div>
+  <div class="empty-title">No schedules yet</div>
+  <div class="empty-desc">Scheduled sessions will appear here once they are added by an administrator.</div>
+</div>
+{% endif %}
+{% endblock %}

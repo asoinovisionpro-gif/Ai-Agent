@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Bookings{% endblock %}
+{% block page_title %}All Bookings{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>Bookings</h1>
+    <p>All seat reservations with agent decisions and audit trail.</p>
+  </div>
+</div>
+
+<form method="GET" action="{{ url_for('admin.bookings') }}" class="d-flex gap-8 mb-16" style="flex-wrap:wrap;">
+  <select name="lab_id" class="form-control" style="width:auto;">
+    <option value="">All Labs</option>
+    {% for lab in labs %}
+    <option value="{{ lab.id }}" {{ 'selected' if filters.lab_id == lab.id | string }}>{{ lab.name }}</option>
+    {% endfor %}
+  </select>
+  <select name="status" class="form-control" style="width:auto;">
+    <option value="">All Statuses</option>
+    <option value="approved" {{ 'selected' if filters.status == 'approved' }}>Approved</option>
+    <option value="rejected" {{ 'selected' if filters.status == 'rejected' }}>Rejected</option>
+    <option value="cancelled" {{ 'selected' if filters.status == 'cancelled' }}>Cancelled</option>
+    <option value="completed" {{ 'selected' if filters.status == 'completed' }}>Completed</option>
+  </select>
+  <input type="date" name="date" class="form-control" style="width:auto;" value="{{ filters.date or '' }}">
+  <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+  <a href="{{ url_for('admin.bookings') }}" class="btn btn-secondary btn-sm">Clear</a>
+</form>
+
+{% if bookings %}
+<div class="table-wrapper">
+  <table>
+    <thead>
+      <tr>
+        <th>User</th>
+        <th>Lab / Seat</th>
+        <th>Date</th>
+        <th>Duration</th>
+        <th>Status</th>
+        <th>Agent</th>
+        <th>Reason</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in bookings %}
+      <tr>
+        <td>
+          <div style="font-weight:600;">{{ b.user.name }}</div>
+          <div class="table-mono">{{ b.user.role }}</div>
+        </td>
+        <td>
+          <div style="font-weight:600;">{{ b.seat.laboratory.name }}</div>
+          <div class="table-mono">Seat {{ b.seat.seat_number }}</div>
+        </td>
+        <td class="table-mono">{{ b.start_time.strftime('%d %b %Y') }}</td>
+        <td class="table-mono">{{ b.start_time.strftime('%H:%M') }}–{{ b.end_time.strftime('%H:%M') }}</td>
+        <td><span class="badge badge-{{ b.status }}">{{ b.status }}</span></td>
+        <td><span class="badge badge-{{ 'approved' if b.agent_decision == 'APPROVE' else 'rejected' if b.agent_decision == 'REJECT' else 'pending' }}">{{ b.agent_decision or '—' }}</span></td>
+        <td style="font-size:12px; color:var(--color-text-muted); max-width:180px;">{{ b.agent_reason or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">📋</div>
+  <div class="empty-title">No bookings found</div>
+  <div class="empty-desc">Adjust the filters or check back when users make reservations.</div>
+</div>
+{% endif %}
+{% endblock %}

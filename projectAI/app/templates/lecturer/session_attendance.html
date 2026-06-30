@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Session Attendance{% endblock %}
+{% block page_title %}Session Attendance{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>{{ session.schedule.course_name }}</h1>
+    <p>{{ session.schedule.laboratory.name }} · Opened {{ session.opened_at.strftime('%d %b %Y at %H:%M') }}</p>
+  </div>
+  <div class="page-header-actions">
+    {% if not session.closed_at %}
+    <form method="POST" action="{{ url_for('lecturer.close_session', session_id=session.id) }}">
+      <button type="submit" class="btn btn-danger">Close session</button>
+    </form>
+    {% else %}
+    <span class="badge badge-completed" style="font-size:13px; padding:6px 12px;">Closed · {{ session.closed_at.strftime('%H:%M') }}</span>
+    {% endif %}
+    <a href="{{ url_for('lecturer.attendance_report', session_id=session.id) }}" class="btn btn-secondary btn-sm">Export CSV</a>
+  </div>
+</div>
+
+<div class="stat-grid" style="grid-template-columns:repeat(4,1fr);">
+  <div class="stat-card green">
+    <div class="stat-value">{{ summary.present }}</div>
+    <div class="stat-label">Present</div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-value">{{ summary.absent }}</div>
+    <div class="stat-label">Absent</div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-value">{{ summary.anomaly }}</div>
+    <div class="stat-label">Anomaly</div>
+  </div>
+  <div class="stat-card cyan">
+    <div class="stat-value">{{ summary.total }}</div>
+    <div class="stat-label">Total</div>
+  </div>
+</div>
+
+<div class="table-wrapper">
+  <table>
+    <thead>
+      <tr>
+        <th>Student</th>
+        <th>Email</th>
+        <th>Status</th>
+        <th>Recorded at</th>
+        <th>Flag</th>
+        {% if not session.locked %}
+        <th>Override</th>
+        {% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for rec in attendance_records %}
+      <tr>
+        <td style="font-weight:600;">{{ rec.user.name }}</td>
+        <td class="table-mono">{{ rec.user.email }}</td>
+        <td><span class="badge badge-{{ rec.status }}">{{ rec.status }}</span></td>
+        <td class="table-mono">{{ rec.recorded_at.strftime('%H:%M:%S') }}</td>
+        <td style="font-size:12px; color:var(--color-amber);">{{ rec.agent_flag or '—' }}</td>
+        {% if not session.locked %}
+        <td>
+          <form method="POST" action="{{ url_for('lecturer.manual_checkin', session_id=session.id, user_id=rec.user_id) }}">
+            <button type="submit" class="btn btn-success btn-sm">Mark present</button>
+          </form>
+        </td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if session.locked %}
+<div style="margin-top:12px; font-size:12px; color:var(--color-text-subtle); text-align:center;">
+  🔒 Records locked by Attendance Agent at session close.
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Attendance{% endblock %}
+{% block page_title %}My Attendance{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>Attendance Record</h1>
+    <p>Verified by the Attendance Agent. Records are immutable after session close.</p>
+  </div>
+</div>
+
+<div class="stat-grid" style="grid-template-columns:repeat(3,1fr); margin-bottom:24px;">
+  <div class="stat-card green">
+    <div class="stat-icon green">✓</div>
+    <div class="stat-value">{{ attendance_summary.present }}</div>
+    <div class="stat-label">Present</div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-icon red">✕</div>
+    <div class="stat-value">{{ attendance_summary.absent }}</div>
+    <div class="stat-label">Absent</div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-icon amber">⚠</div>
+    <div class="stat-value">{{ attendance_summary.anomaly }}</div>
+    <div class="stat-label">Anomalies</div>
+  </div>
+</div>
+
+{% if records %}
+<div class="table-wrapper">
+  <table>
+    <thead>
+      <tr>
+        <th>Course</th>
+        <th>Lab</th>
+        <th>Date</th>
+        <th>Status</th>
+        <th>Note</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for rec in records %}
+      <tr>
+        <td style="font-weight:600;">{{ rec.session.schedule.course_name }}</td>
+        <td class="table-mono">{{ rec.session.schedule.laboratory.name }}</td>
+        <td class="table-mono">{{ rec.session.opened_at.strftime('%d %b %Y · %H:%M') }}</td>
+        <td><span class="badge badge-{{ rec.status }}">{{ rec.status }}</span></td>
+        <td style="font-size:12px; color:var(--color-text-muted);">{{ rec.agent_flag or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">📊</div>
+  <div class="empty-title">No records yet</div>
+  <div class="empty-desc">Attendance records appear after lecturers close their sessions.</div>
+</div>
+{% endif %}
+{% endblock %}

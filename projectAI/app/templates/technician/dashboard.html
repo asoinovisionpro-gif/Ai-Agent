@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Technician Dashboard{% endblock %}
+{% block page_title %}Technician Dashboard{% endblock %}
+{% block content %}
+
+<div class="stat-grid">
+  <div class="stat-card red">
+    <div class="stat-icon red">⚠</div>
+    <div class="stat-value">{{ open_faults }}</div>
+    <div class="stat-label">Open Faults</div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-icon amber">🔧</div>
+    <div class="stat-value">{{ maintenance_count }}</div>
+    <div class="stat-label">In Maintenance</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon green">✓</div>
+    <div class="stat-value">{{ resolved_this_week }}</div>
+    <div class="stat-label">Resolved This Week</div>
+  </div>
+  <div class="stat-card cyan">
+    <div class="stat-icon cyan">💻</div>
+    <div class="stat-value">{{ total_equipment }}</div>
+    <div class="stat-label">Total Equipment</div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Open Faults</div>
+        <div class="card-subtitle">Equipment requiring attention</div>
+      </div>
+      <a href="{{ url_for('technician.equipment') }}?status=faulty" class="btn btn-ghost btn-sm">View all</a>
+    </div>
+    {% if faulty_equipment %}
+      {% for eq in faulty_equipment %}
+      <div class="agent-log-entry">
+        <div class="agent-dot reject"></div>
+        <div class="agent-log-body">
+          <div class="agent-log-title">{{ eq.name }}</div>
+          <div class="agent-log-meta">{{ eq.laboratory.name }} · {{ eq.type }}</div>
+        </div>
+        <form method="POST" action="{{ url_for('technician.resolve_fault', equipment_id=eq.id) }}">
+          <button type="submit" class="btn btn-success btn-sm">Resolve</button>
+        </form>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state" style="padding:24px;">
+        <div class="empty-icon">✓</div>
+        <div class="empty-title">All clear</div>
+        <div class="empty-desc">No open faults right now.</div>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Lab Status Overview</div>
+    </div>
+    {% for lab in labs %}
+    <div style="margin-bottom:14px;">
+      <div class="d-flex justify-between align-center mb-4">
+        <span style="font-weight:600; font-size:13px;">{{ lab.name }}</span>
+        <span class="badge badge-{{ 'available' if lab.status == 'active' else 'faulty' }}">{{ lab.status }}</span>
+      </div>
+      {% set eq_count = equipment_by_lab.get(lab.id, {}) %}
+      <div style="font-size:12px; color:var(--color-text-muted);">
+        {{ eq_count.get('operational', 0) }} operational ·
+        <span style="color:var(--color-red);">{{ eq_count.get('faulty', 0) }} faulty</span> ·
+        {{ eq_count.get('total', 0) }} total
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

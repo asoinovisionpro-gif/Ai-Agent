@@ -1,0 +1,11 @@
+flask>=3.0.0
+flask-sqlalchemy>=3.1.0
+flask-login>=0.6.3
+flask-migrate>=4.0.5
+flask-socketio>=5.3.6
+psycopg2-binary>=2.9.9
+bcrypt>=4.1.2
+python-dotenv>=1.0.1
+anthropic>=0.25.0
+email-validator>=2.1.1
+threading

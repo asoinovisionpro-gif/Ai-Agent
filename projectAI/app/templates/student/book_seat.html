@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}Book a Seat — {{ lab.name }}{% endblock %}
+{% block page_title %}Book a Seat{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>{{ lab.name }}</h1>
+    <p>{{ lab.location }} · {{ lab.capacity }} seats total</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="{{ url_for('student.labs') }}" class="btn btn-secondary btn-sm">← Back to labs</a>
+  </div>
+</div>
+
+{% if recommendations %}
+<div class="card mb-16" style="border-color:var(--color-cyan);">
+  <div class="card-header">
+    <div>
+      <div class="card-title" style="color:var(--color-cyan);">⚡ Recommended Seats</div>
+      <div class="card-subtitle">Ranked by availability, power, and network access</div>
+    </div>
+  </div>
+  <div class="d-flex" style="gap:10px; flex-wrap:wrap;">
+    {% for rec in recommendations %}
+    <div class="seat-card seat-available" id="rec-{{ rec.seat_id }}" onclick="selectSeat('{{ rec.seat_id }}', '{{ rec.seat_number }}')" title="{{ rec.reason }}" style="position:relative;">
+      {{ rec.seat_number }}
+      <div class="seat-icons">
+        <span class="seat-icon-small" title="Score: {{ rec.score }}">★ {{ rec.score }}</span>
+      </div>
+      <div style="position:absolute;top:-6px;right:-6px;background:var(--color-cyan);color:#0d1117;font-size:9px;padding:1px 4px;border-radius:4px;font-weight:700;">TOP</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="grid-2" style="align-items:start;">
+  <div>
+    <div class="seat-map-container" data-lab-id="{{ lab.id }}">
+      <div class="seat-map-header">
+        <div style="font-size:13px; font-weight:600; color:var(--color-text);">Seat Map
+          <span class="live-dot" style="margin-left:8px;"></span>
+          <span style="font-size:11px; color:var(--color-text-muted); margin-left:4px;">live</span>
+        </div>
+        <div class="seat-legend">
+          <div class="legend-item"><div class="legend-dot available"></div> Available</div>
+          <div class="legend-item"><div class="legend-dot reserved"></div> Reserved</div>
+          <div class="legend-item"><div class="legend-dot occupied"></div> Occupied</div>
+          <div class="legend-item"><div class="legend-dot faulty"></div> Faulty</div>
+        </div>
+      </div>
+      <div class="seat-grid" id="seatGrid">
+        {% for seat in seats %}
+        <div class="seat-card seat-{{ seat.status }}"
+             id="seat-{{ seat.id }}"
+             data-seat-id="{{ seat.id }}"
+             data-seat-number="{{ seat.seat_number }}"
+             data-status="{{ seat.status }}"
+             {% if seat.status == 'available' %}onclick="selectSeat('{{ seat.id }}', '{{ seat.seat_number }}')"{% endif %}
+             title="Seat {{ seat.seat_number }}{% if seat.has_power %} · ⚡ Power{% endif %}{% if seat.has_network %} · 🌐 Network{% endif %}">
+          {{ seat.seat_number }}
+          <div class="seat-icons">
+            {% if seat.has_power %}<span class="seat-icon-small">⚡</span>{% endif %}
+            {% if seat.has_network %}<span class="seat-icon-small">🌐</span>{% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="bookingPanel">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Reserve a Seat</div>
+        <div class="card-subtitle">Bookings are validated by the Booking Agent</div>
+      </div>
+    </div>
+
+    <div id="noSeatSelected" style="text-align:center; padding:24px 0; color:var(--color-text-muted); font-size:13px;">
+      <div style="font-size:32px; margin-bottom:8px;">👆</div>
+      Select an available seat from the map to continue.
+    </div>
+
+    <form method="POST" action="{{ url_for('student.submit_booking') }}" id="bookingForm" style="display:none;">
+      <input type="hidden" name="seat_id" id="selectedSeatId">
+      <input type="hidden" name="lab_id" value="{{ lab.id }}">
+
+      <div style="background:var(--color-cyan-dim); border:1px solid var(--color-cyan); border-radius:var(--radius); padding:12px 14px; margin-bottom:16px;">
+        <div style="font-size:12px; color:var(--color-text-muted); margin-bottom:2px;">Selected seat</div>
+        <div style="font-size:16px; font-weight:700; color:var(--color-cyan); font-family:var(--font-mono);" id="selectedSeatLabel">—</div>
+      </div>
+
+      <div class="form-group">
+        <label for="start_time">Start time</label>
+        <input type="datetime-local" id="start_time" name="start_time" class="form-control" required>
+      </div>
+      <div class="form-group">
+        <label for="end_time">End time</label>
+        <input type="datetime-local" id="end_time" name="end_time" class="form-control" required>
+        <div class="form-hint">Maximum {{ config.MAX_BOOKING_DURATION_HOURS }} hours. Limit {{ config.DAILY_BOOKING_LIMIT }} bookings/day.</div>
+      </div>
+
+      <div class="d-flex" style="gap:8px; margin-top:4px;">
+        <button type="button" class="btn btn-secondary" onclick="clearSelection()">Cancel</button>
+        <button type="submit" class="btn btn-primary w-full">
+          Confirm booking
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </form>
+
+    <div class="divider"></div>
+    <div style="font-size:11px; color:var(--color-text-subtle);">
+      All reservations are processed by the Booking Agent and logged for audit.
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let selectedSeatId = null;
+
+  function selectSeat(seatId, seatNumber) {
+    if (selectedSeatId) {
+      const prev = document.getElementById('seat-' + selectedSeatId);
+      if (prev) prev.classList.remove('seat-selected');
+    }
+    selectedSeatId = seatId;
+    document.getElementById('selectedSeatId').value = seatId;
+    document.getElementById('selectedSeatLabel').textContent = 'Seat ' + seatNumber;
+
+    const el = document.getElementById('seat-' + seatId);
+    if (el) el.classList.add('seat-selected');
+
+    document.getElementById('noSeatSelected').style.display = 'none';
+    document.getElementById('bookingForm').style.display = 'block';
+
+    const now = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    document.getElementById('start_time').value = fmt(now);
+    const end = new Date(now.getTime() + 2*60*60*1000);
+    document.getElementById('end_time').value = fmt(end);
+  }
+
+  function clearSelection() {
+    if (selectedSeatId) {
+      const el = document.getElementById('seat-' + selectedSeatId);
+      if (el) el.classList.remove('seat-selected');
+    }
+    selectedSeatId = null;
+    document.getElementById('noSeatSelected').style.display = 'block';
+    document.getElementById('bookingForm').style.display = 'none';
+  }
+</script>
+{% endblock %}

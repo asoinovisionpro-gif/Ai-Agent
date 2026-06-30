@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Laboratories{% endblock %}
+{% block page_title %}Laboratories{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>Laboratories</h1>
+    <p>Configure labs, manage seats, and control facility status.</p>
+  </div>
+  <div class="page-header-actions">
+    <button class="btn btn-primary btn-sm" onclick="document.getElementById('createLabModal').classList.remove('hidden')">+ Add lab</button>
+  </div>
+</div>
+
+<div class="grid-2">
+  {% for lab in labs %}
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">{{ lab.name }}</div>
+        <div class="card-subtitle">{{ lab.location }} · {{ lab.capacity }} capacity</div>
+      </div>
+      <span class="badge badge-{{ 'available' if lab.status == 'active' else 'faulty' if lab.status == 'maintenance' else 'rejected' }}">{{ lab.status }}</span>
+    </div>
+
+    {% set occ = occupancy[lab.id] %}
+    <div class="occupancy-bar mb-12">
+      <span style="font-size:11px;">{{ occ.total }} seats</span>
+      <div class="bar">
+        <div class="fill" style="width:{{ (occ.occupied + occ.reserved) / occ.total * 100 if occ.total > 0 else 0 }}%;"></div>
+      </div>
+      <span style="font-size:11px;">{{ occ.available }} free</span>
+    </div>
+
+    <div class="d-flex" style="gap:8px; flex-wrap:wrap;">
+      <a href="{{ url_for('admin.lab_seats', lab_id=lab.id) }}" class="btn btn-secondary btn-sm">Manage seats</a>
+      <form method="POST" action="{{ url_for('admin.toggle_lab', lab_id=lab.id) }}" style="display:inline;">
+        <button type="submit" class="btn btn-warning btn-sm">
+          {{ 'Set inactive' if lab.status == 'active' else 'Set active' }}
+        </button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <div class="empty-state" style="grid-column:1/-1;">
+    <div class="empty-icon">🏛</div>
+    <div class="empty-title">No laboratories yet</div>
+    <div class="empty-desc">Create your first laboratory to get started.</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="modal-backdrop hidden" id="createLabModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Add Laboratory</span>
+      <button class="modal-close" onclick="document.getElementById('createLabModal').classList.add('hidden')">×</button>
+    </div>
+    <form method="POST" action="{{ url_for('admin.create_lab') }}">
+      <div class="form-group">
+        <label>Lab name</label>
+        <input type="text" name="name" class="form-control" placeholder="Lab A" required>
+      </div>
+      <div class="form-group">
+        <label>Location</label>
+        <input type="text" name="location" class="form-control" placeholder="Block B, Room 201" required>
+      </div>
+      <div class="form-group">
+        <label>Seat count</label>
+        <input type="number" name="capacity" class="form-control" placeholder="30" min="1" max="200" required>
+        <div class="form-hint">Seats will be auto-generated with alternating power/network access.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('createLabModal').classList.add('hidden')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create lab</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

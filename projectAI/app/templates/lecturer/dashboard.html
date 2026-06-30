@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Lecturer Dashboard{% endblock %}
+{% block content %}
+
+<div class="stat-grid">
+  <div class="stat-card cyan">
+    <div class="stat-icon cyan">▶</div>
+    <div class="stat-value">{{ open_sessions | length }}</div>
+    <div class="stat-label">Open Sessions</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon green">✓</div>
+    <div class="stat-value">{{ total_sessions }}</div>
+    <div class="stat-label">Total Sessions</div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-icon amber">📅</div>
+    <div class="stat-value">{{ todays_schedules | length }}</div>
+    <div class="stat-label">Classes Today</div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-icon red">👥</div>
+    <div class="stat-value">{{ avg_attendance }}%</div>
+    <div class="stat-label">Avg Attendance</div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Today's Classes</div>
+        <div class="card-subtitle">{{ now.strftime('%A, %d %B') }}</div>
+      </div>
+    </div>
+    {% if todays_schedules %}
+      {% for sched in todays_schedules %}
+      <div class="schedule-item" style="margin-bottom:10px;">
+        <div class="d-flex justify-between align-center">
+          <div>
+            <div class="schedule-course">{{ sched.course_name }}</div>
+            <div class="schedule-meta">{{ sched.laboratory.name }} · {{ sched.start_time.strftime('%H:%M') }}–{{ sched.end_time.strftime('%H:%M') }}</div>
+          </div>
+          <form method="POST" action="{{ url_for('lecturer.open_session', schedule_id=sched.id) }}">
+            <button type="submit" class="btn btn-success btn-sm">Open session</button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state" style="padding:24px;">
+        <div class="empty-desc">No classes scheduled today.</div>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Open Sessions</div>
+        <div class="card-subtitle">Sessions currently in progress</div>
+      </div>
+    </div>
+    {% if open_sessions %}
+      {% for session in open_sessions %}
+      <div class="agent-log-entry">
+        <div class="live-dot" style="margin-top:4px; flex-shrink:0;"></div>
+        <div class="agent-log-body">
+          <div class="agent-log-title">{{ session.schedule.course_name }}</div>
+          <div class="agent-log-meta">Opened {{ session.opened_at.strftime('%H:%M') }} · {{ session.schedule.laboratory.name }}</div>
+        </div>
+        <div class="d-flex" style="gap:6px;">
+          <a href="{{ url_for('lecturer.session_attendance', session_id=session.id) }}" class="btn btn-secondary btn-sm">View</a>
+          <form method="POST" action="{{ url_for('lecturer.close_session', session_id=session.id) }}">
+            <button type="submit" class="btn btn-danger btn-sm">Close</button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state" style="padding:24px;">
+        <div class="empty-desc">No sessions currently open.</div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
